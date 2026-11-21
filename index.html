@@ -1,113 +1,99 @@
 <!DOCTYPE html>
 <html lang="id">
 <head>
-  <meta charset="utf-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>Bib Digital - SMADALMJ Runfest</title>
-  <style>
-    * { box-sizing: border-box; margin: 0; padding: 0; }
-    html, body { width: 100vw; height: 100vh; background: #0b1220; color: #fff;
-      font-family: Arial, sans-serif; overflow: hidden; }
-    #scan { position: fixed; top: 0; left: 0; width: 1px; height: 1px; opacity: 0; border: 0; }
-
-    .layar { position: fixed; inset: 0; display: none;
-      flex-direction: column; align-items: center; justify-content: center; text-align: center; }
-    #idle h1 { font-size: 6vw; color: #ff8230; }
-    #idle p  { font-size: 2.8vw; margin-top: 2vh; opacity: .8; }
-    #error h1 { font-size: 5vw; color: #ff5d5d; }
-
-    #hasil { background: #000; }
-    #latar { position: absolute; inset: 0; width: 100%; height: 100%;
-      object-fit: cover; filter: blur(30px) brightness(.5); transform: scale(1.1); }
-    #gambar { position: relative; width: 100vw; height: 100vh; object-fit: contain; }
-
-    #loading { position: fixed; top: 10px; right: 20px; font-size: 22px;
-      color: #ff8230; display: none; z-index: 10; }
-  </style>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Bib Digital - SMADALMJ Runfest</title>
+<style>
+  *{box-sizing:border-box;margin:0;padding:0}
+  html,body{width:100%;height:100%;background:#0b1220;color:#fff;
+    font-family:Arial,sans-serif;overflow:hidden}
+  #scan{position:fixed;top:0;left:0;width:1px;height:1px;opacity:0;border:0}
+  .layar{position:fixed;inset:0;display:none;flex-direction:column;
+    align-items:center;justify-content:center;text-align:center}
+  #idle h1{font-size:6vw;color:#ff8230}
+  #idle p{font-size:2.8vw;margin-top:2vh;opacity:.8}
+  #error h1{font-size:5vw;color:#ff5d5d}
+  #hasil{background:#000}
+  #latar{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;
+    filter:blur(30px) brightness(.5);transform:scale(1.1)}
+  #gambar{position:relative;width:100%;height:100%;object-fit:contain}
+</style>
 </head>
 <body>
-  <input id="scan" type="text" autocomplete="off" autofocus>
-  <div id="loading">Memuat...</div>
+<input id="scan" type="text" autocomplete="off" autofocus>
 
-  <div id="idle" class="layar">
-    <h1>SMADALMJ RUNFEST</h1>
-    <p>Silakan scan QR code pada bib Anda</p>
-  </div>
-  <div id="hasil" class="layar">
-    <img id="latar" alt="">
-    <img id="gambar" alt="Bib">
-  </div>
-  <div id="error" class="layar"><h1 id="pesanError"></h1></div>
+<div id="idle" class="layar">
+  <h1>SMADALMJ RUNFEST</h1>
+  <p>Silakan scan QR code pada bib Anda</p>
+</div>
+<div id="hasil" class="layar">
+  <img id="latar" alt=""><img id="gambar" alt="Bib">
+</div>
+<div id="error" class="layar"><h1>Bib tidak ditemukan</h1></div>
 
-  <script>
-    const API_URL = 'https://script.google.com/macros/s/AKfycbyrV49XU4ftiwKcYrp1CX9-2xylSRqknpbce5KLMqz_a2IBFXG8fdzXexzxV_OfhsFc/exec';
-    const TAMPIL_MS = 15000;
+<script>
+var TAMPIL_MS = 15000;   // lama bib tampil di TV (ms)
+var scan = document.getElementById('scan');
+var timer = null, debounce = null;
 
-    const scan = document.getElementById('scan');
-    let timer = null, debounce = null;
+function tampil(id){
+  ['idle','hasil','error'].forEach(function(x){
+    document.getElementById(x).style.display = (x === id) ? 'flex' : 'none';
+  });
+}
+function focusScan(){ scan.value = ''; scan.focus(); }
+function kembaliIdle(){ tampil('idle'); focusScan(); }
+function resetTimer(ms){ clearTimeout(timer); timer = setTimeout(kembaliIdle, ms); }
 
-    function tampil(id) {
-      ['idle', 'hasil', 'error'].forEach(function (x) {
-        document.getElementById(x).style.display = (x === id) ? 'flex' : 'none';
-      });
-    }
-    function focusScan() { scan.value = ''; scan.focus(); }
-    function kembaliIdle() { tampil('idle'); focusScan(); }
-    function resetTimer(ms) { clearTimeout(timer); timer = setTimeout(kembaliIdle, ms); }
+// Ambil token dari isi QR (URL lengkap ...?t=TOKEN) atau token polos
+function ambilToken(teks){
+  var m = teks.match(/[?&]t=([A-Za-z0-9]+)/);
+  if (m) return m[1];
+  var polos = teks.trim();
+  return /^[A-Za-z0-9]{10,}$/.test(polos) ? polos : '';
+}
 
-    function ambilToken(teks) {
-      var m = teks.match(/[?&]t=([A-Za-z0-9]+)/);
-      if (m) return m[1];
-      var polos = teks.trim();
-      return /^[A-Za-z0-9]{10,}$/.test(polos) ? polos : '';
-    }
+function cari(token, otomatisKembali){
+  var url = 'b/' + token + '.jpg';
+  var pra = new Image();
+  pra.onload = function(){
+    document.getElementById('gambar').src = url;
+    document.getElementById('latar').src = url;
+    tampil('hasil');
+    if (otomatisKembali) resetTimer(TAMPIL_MS);
+  };
+  pra.onerror = function(){
+    tampil('error');
+    if (otomatisKembali) resetTimer(4000);
+  };
+  pra.src = url;
+}
 
-    function cari(token, sumber, otomatisKembali) {
-      document.getElementById('loading').style.display = 'block';
-      fetch(API_URL + '?t=' + encodeURIComponent(token) + '&s=' + sumber)
-        .then(function (res) { return res.json(); })
-        .then(function (r) {
-          document.getElementById('loading').style.display = 'none';
-          if (r.ok) {
-            document.getElementById('gambar').src = r.img;
-            document.getElementById('latar').src = r.img;
-            tampil('hasil');
-          } else {
-            document.getElementById('pesanError').textContent = r.pesan;
-            tampil('error');
-          }
-          if (otomatisKembali) resetTimer(r.ok ? TAMPIL_MS : 4000);
-        })
-        .catch(function () {
-          document.getElementById('loading').style.display = 'none';
-          document.getElementById('pesanError').textContent = 'Gagal terhubung';
-          tampil('error');
-          if (otomatisKembali) resetTimer(4000);
-        });
-    }
+function proses(){
+  var token = ambilToken(scan.value);
+  scan.value = '';
+  if (token){ clearTimeout(timer); cari(token, true); }
+}
 
-    function proses() {
-      var token = ambilToken(scan.value);
-      scan.value = '';
-      if (token) { clearTimeout(timer); cari(token, 'tv', true); }
-    }
+// Scanner biasanya diakhiri Enter; kalau tidak, pakai jeda 400 ms
+scan.addEventListener('keydown', function(e){
+  if (e.key === 'Enter'){ e.preventDefault(); clearTimeout(debounce); proses(); }
+});
+scan.addEventListener('input', function(){
+  clearTimeout(debounce);
+  debounce = setTimeout(proses, 400);
+});
+scan.addEventListener('blur', function(){ setTimeout(function(){ scan.focus(); }, 50); });
+document.addEventListener('click', function(){ scan.focus(); });
 
-    scan.addEventListener('keydown', function (e) {
-      if (e.key === 'Enter') { e.preventDefault(); clearTimeout(debounce); proses(); }
-    });
-    scan.addEventListener('input', function () {
-      clearTimeout(debounce);
-      debounce = setTimeout(proses, 400);
-    });
-    scan.addEventListener('blur', function () { setTimeout(function () { scan.focus(); }, 50); });
-    document.addEventListener('click', function () { scan.focus(); });
-
-    var tokenUrl = new URLSearchParams(location.search).get('t');
-    if (tokenUrl && /^[A-Za-z0-9]{10,}$/.test(tokenUrl)) {
-      cari(tokenUrl, 'hp', false);
-    } else {
-      kembaliIdle();
-    }
-  </script>
+// Dibuka dari scan HP (?t=TOKEN) atau mode TV (tanpa token)
+var tokenUrl = new URLSearchParams(location.search).get('t');
+if (tokenUrl && /^[A-Za-z0-9]{10,}$/.test(tokenUrl)){
+  cari(tokenUrl, false);
+} else {
+  kembaliIdle();
+}
+</script>
 </body>
 </html>
