@@ -81,6 +81,12 @@
   #flash.bad{background:rgba(229,72,77,.35);animation:fl .5s ease}
   #flash.dup{background:rgba(245,184,46,.35);animation:fl .5s ease}
   @keyframes fl{0%{opacity:1}100%{opacity:0}}
+  #konfirm{position:fixed;inset:0;z-index:70;display:none;align-items:center;justify-content:center;padding:20px;background:rgba(5,10,20,.8)}
+  #konfirm.on{display:flex}
+  #konfirm .kotak{width:100%;max-width:360px;background:var(--card);border:1px solid var(--garis);border-radius:22px;padding:22px;text-align:center;animation:pop .25s ease}
+  #konfirm .ikn{font-size:46px;line-height:1}
+  #konfirm h2{margin:8px 0 4px}
+  #konfirm p{color:var(--redup);margin:0 0 14px;font-size:14px}
   details{margin-top:8px}
   summary{color:var(--redup);cursor:pointer;padding:8px 0}
 
@@ -113,6 +119,12 @@
 <body>
 <div id="flash"></div>
 <div id="modal"><div id="hasil"></div></div>
+<div id="konfirm"><div class="kotak">
+  <div class="ikn">🚪</div>
+  <h2>Keluar dari akun?</h2>
+  <p>Anda harus login lagi untuk mencatat finish.</p>
+  <div class="baris"><button class="btn abu" id="batalKeluar">Batal</button><button class="btn merah" id="yaKeluar">Ya, Keluar</button></div>
+</div></div>
 <div class="box">
 
   <div id="login">
@@ -185,7 +197,7 @@
 <script>
 const API = 'https://script.google.com/macros/s/AKfycbwmbDDR1kpIl__kva8Brbi6R6wXaOJ_JzEQnPT0nrSk59bx5IV-MzjjMr6st0lKrIZC/exec';   // URL Web app Apps Script (berakhiran /exec)
 const $ = id => document.getElementById(id);
-let lastToken = '', lastWaktu = 0;
+let lastToken = '', lastWaktu = 0, tabAktif = 'scan';
 let sesi = null, peran = '', data = null, scanner = null, kunci = false, katAktif = '';
 
 function ls(k, v) {
@@ -223,6 +235,7 @@ function nada(f, mulai, dur, tipe, vol) {
 }
 function bunyi(jenis) {
   unlock();
+  if (jenis === 'klik') { nada(1000, 0, .07, 'sine', .35); return; }
   if (jenis === 'ok') { nada(880, 0, .14, 'sine', .6); nada(1320, .14, .3, 'sine', .6); }
   else if (jenis === 'dup') { nada(500, 0, .16, 'square', .28); nada(500, .24, .16, 'square', .28); }
   else { nada(200, 0, .45, 'sawtooth', .32); }
@@ -280,13 +293,18 @@ async function keluar() {
   await stopScan();
   $('app').style.display = 'none'; $('nav').style.display = 'none'; $('login').style.display = 'block';
 }
-$('keluar').onclick = keluar;
+// Tombol keluar meminta verifikasi dulu agar tidak terpencet tidak sengaja
+$('keluar').onclick = () => { $('konfirm').className = 'on'; };
+$('batalKeluar').onclick = () => { $('konfirm').className = ''; };
+$('yaKeluar').onclick = () => { $('konfirm').className = ''; keluar(); };
+$('konfirm').onclick = e => { if (e.target === $('konfirm')) $('konfirm').className = ''; };
 
 // ---------- Tab ----------
 function tab(t) {
   ['scan', 'rank', 'adm'].forEach(x => $(x).style.display = x === t ? 'block' : 'none');
   document.querySelectorAll('nav button').forEach(b => b.className = b.dataset.t === t ? 'on' : '');
-  if (t === 'scan') mulaiScan(); else stopScan();
+  tabAktif = t;
+  if (t === 'scan') mulaiScan(); else { stopScan(); muat(); }
 }
 document.querySelectorAll('nav button').forEach(b => b.onclick = () => tab(b.dataset.t));
 
@@ -305,6 +323,7 @@ function onScan(teks) {
   if (!m) return;
   if (m[1] === lastToken && Date.now() - lastWaktu < 5000) return;   // abaikan QR yang sama saat masih di depan kamera
   lastToken = m[1]; lastWaktu = Date.now();
+  bunyi('klik');   // tanda langsung bahwa QR terbaca
   kirim({ t: m[1] });
 }
 async function kirim(p) {
@@ -313,7 +332,6 @@ async function kirim(p) {
   const r = await api(p);
   tampilHasil(r);
   $('petunjuk').textContent = 'Arahkan kamera ke QR pada bib';
-  muat();
 }
 $('kirimBib').onclick = () => { const b = $('bib').value.trim(); if (b) { kirim({ bib: b }); $('bib').value = ''; } };
 
@@ -336,6 +354,7 @@ function tampilHasil(r) {
   else if (jenis === 'dup') ucap('Sudah finish');
   else ucap('Gagal');
   if (r.bib) $('nTerakhir').textContent = r.bib;
+  if (jenis === 'ok') $('nTotal').textContent = (+$('nTotal').textContent || 0) + 1;
   $('modal').className = 'on';
   clearTimeout(popupTimer);
   popupTimer = setTimeout(tutupModal, jenis === 'ok' ? 2500 : 3500);
@@ -432,7 +451,8 @@ async function unduhRekap() {
 $('unduh').onclick = unduhRekap;
 
 // ---------- Mulai ----------
-setInterval(() => { if (sesi) muat(); }, 15000);
+setInterval(() => { if (sesi && tabAktif !== 'scan') muat(); }, 15000);   // tidak memuat data saat sedang scan
+setInterval(() => { if (sesi) fetch(API).catch(() => {}); }, 240000);   // jaga server tetap 'hangat'
 const s0 = ls('sesi');
 if (s0) { sesi = s0; peran = ls('peran') || 'panitia'; buka(ls('nama') || ''); }
 </script>
