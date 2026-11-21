@@ -2,80 +2,183 @@
 <html lang="id">
 <head>
 <meta charset="utf-8">
-<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#0b1220">
 <title>Finish - SMADALMJ Runfest</title>
 <style>
-  *{box-sizing:border-box}
-  body{margin:0;background:#0b1220;color:#fff;font-family:Arial,sans-serif}
-  .box{max-width:460px;margin:0 auto;padding:14px}
-  h2{color:#ff8230;margin:8px 0}
-  input,select,button{font-size:17px;padding:12px;border-radius:8px;border:0;width:100%;margin:5px 0}
-  input,select{background:#fff;color:#000}
-  button{background:#ff8230;color:#fff;font-weight:bold}
-  button.abu{background:#334}
-  button.merah{background:#c0392b}
-  header{display:flex;justify-content:space-between;align-items:center}
-  header button{width:auto;padding:8px 12px}
-  nav{display:flex;gap:6px}
-  nav button{background:#334}
-  nav button.on{background:#ff8230}
-  #reader{width:100%;background:#000;border-radius:10px;overflow:hidden;min-height:120px}
-  #hasil{border-radius:10px;padding:14px;margin:10px 0;text-align:center;display:none}
-  #hasil.ok{background:#1e8e3e;display:block}
-  #hasil.bad{background:#c0392b;display:block}
-  .big{font-size:34px;font-weight:bold}
-  table{width:100%;border-collapse:collapse;margin-top:8px}
-  td,th{padding:8px 4px;border-bottom:1px solid #223;text-align:left;font-size:15px}
-  .err{color:#ff7b7b}
-  .kat{background:#16213a;border-radius:10px;padding:10px;margin:8px 0}
-  .row{display:flex;gap:6px}
+  :root{--bg:#0b1220;--card:#141d33;--card2:#1b2744;--garis:#263556;--teks:#fff;--redup:#9fb0d0;
+    --oranye:#ff8230;--oranye2:#ffb347;--hijau:#1fb35a;--merah:#e5484d;--kuning:#f5b82e}
+  *{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+  html,body{margin:0;background:var(--bg);color:var(--teks);font-family:system-ui,-apple-system,"Segoe UI",Roboto,Arial,sans-serif}
+  body{background:radial-gradient(1200px 500px at 50% -10%,#1d2c52 0%,var(--bg) 60%) fixed;min-height:100vh}
+  .box{max-width:480px;margin:0 auto;padding:14px 14px 96px}
+  button,input{font:inherit}
+  input{width:100%;padding:14px;border-radius:12px;border:1px solid var(--garis);background:#0e1730;color:#fff;font-size:17px;margin:6px 0;outline:none}
+  input:focus{border-color:var(--oranye)}
+  .btn{width:100%;padding:14px;border:0;border-radius:12px;font-weight:700;font-size:16px;color:#fff;
+    background:linear-gradient(135deg,var(--oranye),#ff5e3a);box-shadow:0 6px 18px rgba(255,100,40,.28);margin:6px 0;cursor:pointer}
+  .btn:active{transform:scale(.98)}
+  .btn.abu{background:var(--card2);box-shadow:none;border:1px solid var(--garis)}
+  .btn.merah{background:linear-gradient(135deg,#e5484d,#b3262b);box-shadow:none}
+  .btn.kecil{width:auto;padding:8px 12px;font-size:14px;margin:0}
+
+  /* login */
+  #login{padding-top:9vh;text-align:center}
+  .logo{font-size:13px;letter-spacing:.35em;color:var(--oranye2);font-weight:700}
+  #login h1{font-size:34px;margin:6px 0 4px}
+  #login p{color:var(--redup);margin:0 0 22px}
+  .panel{background:var(--card);border:1px solid var(--garis);border-radius:18px;padding:16px;text-align:left}
+  .pw{position:relative}
+  .pw input{padding-right:52px}
+  .mata{position:absolute;right:6px;top:50%;transform:translateY(-50%);width:42px;height:42px;border:0;border-radius:10px;
+    background:transparent;color:var(--redup);font-size:20px;cursor:pointer}
+  .mata.on{color:var(--oranye2)}
+  .err{color:#ff8a8d;min-height:22px;margin-top:6px;font-size:14px}
+
+  /* header */
+  header{display:flex;align-items:center;justify-content:space-between;gap:8px;margin-bottom:12px}
+  header .judul{font-weight:800;font-size:17px}
+  header .judul small{display:block;color:var(--oranye2);font-size:11px;letter-spacing:.25em}
+  .kanan{display:flex;gap:6px;align-items:center}
+  .pil{background:var(--card2);border:1px solid var(--garis);border-radius:999px;padding:7px 12px;font-size:13px;color:var(--redup)}
+  .ikon{background:var(--card2);border:1px solid var(--garis);border-radius:50%;width:38px;height:38px;color:#fff;font-size:17px;cursor:pointer}
+  .ikon.mati{opacity:.4}
+
+  /* navigasi bawah */
+  nav{position:fixed;left:0;right:0;bottom:0;display:flex;justify-content:center;gap:0;
+    background:rgba(15,23,45,.96);backdrop-filter:blur(10px);border-top:1px solid var(--garis);padding-bottom:env(safe-area-inset-bottom)}
+  nav button{flex:1;max-width:160px;background:none;border:0;color:var(--redup);padding:10px 4px 12px;font-size:12px;cursor:pointer}
+  nav button span{display:block;font-size:22px;line-height:1.2}
+  nav button.on{color:var(--oranye2)}
+
+  /* scan */
+  .stat{display:flex;gap:8px;margin-bottom:10px}
+  .stat div{flex:1;background:var(--card);border:1px solid var(--garis);border-radius:14px;padding:10px;text-align:center}
+  .stat b{display:block;font-size:24px;color:var(--oranye2)}
+  .stat small{color:var(--redup);font-size:12px}
+  #wrap{position:relative;border-radius:20px;overflow:hidden;border:3px solid var(--garis);background:#000;transition:border-color .2s,box-shadow .2s}
+  #wrap.ok{border-color:var(--hijau);box-shadow:0 0 30px rgba(31,179,90,.55)}
+  #wrap.bad{border-color:var(--merah);box-shadow:0 0 30px rgba(229,72,77,.5)}
+  #wrap.dup{border-color:var(--kuning);box-shadow:0 0 30px rgba(245,184,46,.5)}
+  #reader{width:100%;min-height:200px}
+  #petunjuk{position:absolute;left:0;right:0;bottom:10px;text-align:center;font-size:13px;color:#fff;text-shadow:0 1px 4px #000;pointer-events:none}
+  #hasil{display:none;margin:12px 0;border-radius:20px;padding:18px;text-align:center;animation:pop .35s ease}
+  #hasil.ok{display:block;background:linear-gradient(160deg,#1fb35a,#13803f)}
+  #hasil.bad{display:block;background:linear-gradient(160deg,#e5484d,#a52428)}
+  #hasil.dup{display:block;background:linear-gradient(160deg,#f5b82e,#c98a0a);color:#2a1d00}
+  #hasil .stt{font-weight:800;letter-spacing:.08em;font-size:14px;opacity:.95}
+  #hasil .bib{font-size:46px;font-weight:900;line-height:1.1;margin:4px 0}
+  #hasil .nm{font-size:19px;font-weight:700}
+  #hasil .wkt{font-size:40px;font-weight:900;margin-top:8px;font-variant-numeric:tabular-nums}
+  #hasil .rk{display:inline-block;margin-top:6px;background:rgba(0,0,0,.22);border-radius:999px;padding:6px 16px;font-weight:800}
+  @keyframes pop{0%{transform:scale(.88);opacity:0}100%{transform:scale(1);opacity:1}}
+  #flash{position:fixed;inset:0;pointer-events:none;opacity:0;z-index:50}
+  #flash.ok{background:rgba(31,179,90,.35);animation:fl .5s ease}
+  #flash.bad{background:rgba(229,72,77,.35);animation:fl .5s ease}
+  #flash.dup{background:rgba(245,184,46,.35);animation:fl .5s ease}
+  @keyframes fl{0%{opacity:1}100%{opacity:0}}
+  details{margin-top:8px}
+  summary{color:var(--redup);cursor:pointer;padding:8px 0}
+
+  /* ranking */
+  .chips{display:flex;gap:8px;overflow-x:auto;padding-bottom:6px;margin-bottom:6px}
+  .chip{flex:none;padding:9px 16px;border-radius:999px;border:1px solid var(--garis);background:var(--card);color:var(--redup);font-weight:700;cursor:pointer}
+  .chip.on{background:linear-gradient(135deg,var(--oranye),#ff5e3a);color:#fff;border-color:transparent}
+  .rowr{display:flex;align-items:center;gap:10px;background:var(--card);border:1px solid var(--garis);border-radius:14px;padding:10px 12px;margin:7px 0}
+  .rowr.t1{background:linear-gradient(135deg,#4a3a10,#262010);border-color:#b88a1a}
+  .rowr.t2{background:linear-gradient(135deg,#34383f,#1f2228);border-color:#8d96a3}
+  .rowr.t3{background:linear-gradient(135deg,#43291a,#231610);border-color:#a8672f}
+  .no{width:36px;text-align:center;font-weight:900;font-size:18px;color:var(--oranye2)}
+  .info{flex:1;min-width:0}
+  .info b{display:block;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .info small{color:var(--redup)}
+  .wk{font-weight:800;font-variant-numeric:tabular-nums}
+  .kosong{text-align:center;color:var(--redup);padding:30px 0}
+
+  /* admin */
+  .kat{background:var(--card);border:1px solid var(--garis);border-radius:16px;padding:14px;margin:10px 0}
+  .kat .atas{display:flex;justify-content:space-between;align-items:center}
+  .lencana{font-size:12px;font-weight:800;border-radius:999px;padding:4px 10px}
+  .lencana.run{background:rgba(31,179,90,.2);color:#4be08a}
+  .lencana.stop{background:rgba(159,176,208,.15);color:var(--redup)}
+  .jam{font-size:34px;font-weight:900;font-variant-numeric:tabular-nums;margin:6px 0}
+  .baris{display:flex;gap:8px}
+  h3{margin:20px 0 6px;font-size:15px;color:var(--oranye2);letter-spacing:.08em}
 </style>
 </head>
 <body>
+<div id="flash"></div>
 <div class="box">
 
   <div id="login">
-    <h2>Login Panitia</h2>
-    <input id="u" placeholder="Username" autocomplete="username" autocapitalize="off">
-    <input id="p" type="password" placeholder="Password" autocomplete="current-password">
-    <button id="masuk">Masuk</button>
-    <div id="err" class="err"></div>
+    <div class="logo">SMADALMJ RUNFEST</div>
+    <h1>Panel Finish</h1>
+    <p>Masuk untuk mencatat waktu finish</p>
+    <div class="panel">
+      <input id="u" placeholder="Username" autocomplete="username" autocapitalize="off">
+      <div class="pw">
+        <input id="p" type="password" placeholder="Password" autocomplete="current-password">
+        <button type="button" id="lihat" class="mata" title="Tampilkan password">👁</button>
+      </div>
+      <button class="btn" id="masuk">Masuk</button>
+      <div id="err" class="err"></div>
+    </div>
   </div>
 
   <div id="app" style="display:none">
-    <header><b id="who"></b><button id="keluar" class="abu">Keluar</button></header>
-    <nav>
-      <button data-t="scan">Scan</button>
-      <button data-t="rank">Ranking</button>
-      <button data-t="adm" id="tabAdm">Admin</button>
-    </nav>
+    <header>
+      <div class="judul"><small>SMADALMJ RUNFEST</small>Finish</div>
+      <div class="kanan">
+        <span class="pil" id="who"></span>
+        <button class="ikon" id="bSuara" title="Bunyi">🔊</button>
+        <button class="ikon mati" id="bUcap" title="Suara ucapan">🗣</button>
+        <button class="ikon" id="keluar" title="Keluar">⎋</button>
+      </div>
+    </header>
 
     <section id="scan">
-      <div id="reader"></div>
+      <div class="stat">
+        <div><b id="nTotal">0</b><small>Total finish</small></div>
+        <div><b id="nTerakhir">-</b><small>Bib terakhir</small></div>
+      </div>
+      <div id="wrap"><div id="reader"></div><div id="petunjuk">Arahkan kamera ke QR pada bib</div></div>
       <div id="hasil"></div>
-      <input id="bib" placeholder="Manual: nomor bib (jika QR rusak)">
-      <button id="kirimBib" class="abu">Catat Manual</button>
+      <details>
+        <summary>QR rusak? Input nomor bib manual</summary>
+        <input id="bib" placeholder="Nomor bib, contoh G0501006" autocapitalize="characters">
+        <button class="btn abu" id="kirimBib">Catat Manual</button>
+      </details>
     </section>
 
     <section id="rank" style="display:none">
-      <select id="kat"></select>
-      <button id="muat" class="abu">Refresh</button>
-      <table id="tabel"></table>
+      <div class="chips" id="chips"></div>
+      <div id="tabel"></div>
+      <button class="btn abu" id="muat">↻ Refresh</button>
     </section>
 
     <section id="adm" style="display:none">
-      <h2>Mulai Lomba</h2>
+      <h3>MULAI LOMBA</h3>
       <div id="startList"></div>
-      <button id="semua" class="merah">START SEMUA KATEGORI</button>
+      <button class="btn merah" id="semua">START SEMUA KATEGORI</button>
+      <h3>RESET (FASE UJI COBA)</h3>
+      <button class="btn abu" id="rFinish">Reset catatan finish</button>
+      <button class="btn abu" id="rStart">Reset waktu start</button>
+      <button class="btn merah" id="rSemua">RESET SEMUA</button>
     </section>
   </div>
 </div>
 
+<nav id="nav" style="display:none">
+  <button data-t="scan"><span>📷</span>Scan</button>
+  <button data-t="rank"><span>🏆</span>Ranking</button>
+  <button data-t="adm" id="tabAdm"><span>⚙️</span>Admin</button>
+</nav>
+
 <script src="https://cdn.jsdelivr.net/npm/html5-qrcode@2.3.8/html5-qrcode.min.js"></script>
 <script>
-const API = 'https://script.google.com/macros/s/AKfycbwVM2l6ONGzIWDa71tUOyckPqKV2VGdjHu6QprwKlBLt8iGdvy3PwWgGkOoNGaazNsx/exec';   // URL Web app Apps Script (berakhiran /exec)
+const API = 'https://script.google.com/macros/s/AKfycbwRs0zD_myzbkAny8nOjuGWENTsc9-lMrfoxH8ksHkRsl_4YZjqZ9LZYAEdi6l7zEJ6/exec';   // URL Web app Apps Script (berakhiran /exec)
 const $ = id => document.getElementById(id);
-let sesi = null, peran = '', data = null, scanner = null, kunci = false;
+let sesi = null, peran = '', data = null, scanner = null, kunci = false, katAktif = '';
 
 function ls(k, v) {
   try {
@@ -89,7 +192,46 @@ function fmt(ms) {
   const s = Math.floor(ms / 1000), h = Math.floor(s / 3600), m = Math.floor(s % 3600 / 60), d = s % 60;
   return h + ':' + String(m).padStart(2, '0') + ':' + String(d).padStart(2, '0') + '.' + String(Math.floor(ms % 1000 / 10)).padStart(2, '0');
 }
+function fmtDetik(ms) { return fmt(ms).replace(/\.\d+$/, ''); }
 
+// ---------- Suara ----------
+let ac = null, bunyiOn = ls('bunyi') !== '0', ucapOn = ls('ucap') === '1';
+function unlock() {
+  try {
+    if (!ac) ac = new (window.AudioContext || window.webkitAudioContext)();
+    if (ac.state === 'suspended') ac.resume();
+  } catch (e) {}
+}
+['click', 'touchstart'].forEach(ev => document.addEventListener(ev, unlock, { passive: true }));
+function nada(f, mulai, dur, tipe, vol) {
+  if (!ac || !bunyiOn) return;
+  const o = ac.createOscillator(), g = ac.createGain(), t = ac.currentTime + mulai;
+  o.type = tipe; o.frequency.value = f;
+  g.gain.setValueAtTime(0.0001, t);
+  g.gain.exponentialRampToValueAtTime(vol, t + 0.02);
+  g.gain.exponentialRampToValueAtTime(0.0001, t + dur);
+  o.connect(g); g.connect(ac.destination);
+  o.start(t); o.stop(t + dur + 0.05);
+}
+function bunyi(jenis) {
+  unlock();
+  if (jenis === 'ok') { nada(880, 0, .14, 'sine', .6); nada(1320, .14, .3, 'sine', .6); }
+  else if (jenis === 'dup') { nada(500, 0, .16, 'square', .28); nada(500, .24, .16, 'square', .28); }
+  else { nada(200, 0, .45, 'sawtooth', .32); }
+}
+function ucap(teks) {
+  if (!ucapOn || !window.speechSynthesis) return;
+  try { speechSynthesis.cancel(); const u = new SpeechSynthesisUtterance(teks); u.lang = 'id-ID'; speechSynthesis.speak(u); } catch (e) {}
+}
+function gayaSuara() {
+  $('bSuara').className = 'ikon' + (bunyiOn ? '' : ' mati');
+  $('bSuara').textContent = bunyiOn ? '🔊' : '🔇';
+  $('bUcap').className = 'ikon' + (ucapOn ? '' : ' mati');
+}
+$('bSuara').onclick = () => { bunyiOn = !bunyiOn; ls('bunyi', bunyiOn ? '1' : '0'); gayaSuara(); bunyi('ok'); };
+$('bUcap').onclick = () => { ucapOn = !ucapOn; ls('ucap', ucapOn ? '1' : '0'); gayaSuara(); ucap('Suara ucapan aktif'); };
+
+// ---------- API ----------
 async function api(p) {
   p.sesi = sesi;
   try {
@@ -102,23 +244,33 @@ async function api(p) {
 
 // ---------- Login ----------
 $('masuk').onclick = async () => {
+  unlock();
   $('err').textContent = '';
   const r = await api({ aksi: 'login', u: $('u').value, p: $('p').value });
   if (!r.ok) { $('err').textContent = r.pesan; return; }
   sesi = r.token; peran = r.peran;
   ls('sesi', sesi); ls('nama', r.nama); ls('peran', peran);
   buka(r.nama);
+  bunyi('ok');
 };
+$('lihat').onclick = () => {
+  const t = $('p').type === 'password';
+  $('p').type = t ? 'text' : 'password';
+  $('lihat').textContent = t ? '🙈' : '👁';
+  $('lihat').className = 'mata' + (t ? ' on' : '');
+  $('p').focus();
+};
+$('p').addEventListener('keydown', e => { if (e.key === 'Enter') $('masuk').click(); });
 function buka(nama) {
-  $('login').style.display = 'none'; $('app').style.display = 'block';
-  $('who').textContent = nama + ' (' + peran + ')';
+  $('login').style.display = 'none'; $('app').style.display = 'block'; $('nav').style.display = 'flex';
+  $('who').textContent = nama + (peran === 'admin' ? ' · admin' : '');
   $('tabAdm').style.display = peran === 'admin' ? '' : 'none';
-  tab('scan'); muat();
+  gayaSuara(); tab('scan'); muat();
 }
 async function keluar() {
   ls('sesi', null); sesi = null;
   await stopScan();
-  $('app').style.display = 'none'; $('login').style.display = 'block';
+  $('app').style.display = 'none'; $('nav').style.display = 'none'; $('login').style.display = 'block';
 }
 $('keluar').onclick = keluar;
 
@@ -146,59 +298,87 @@ function onScan(teks) {
 }
 async function kirim(p) {
   kunci = true; p.aksi = 'finish';
-  $('hasil').className = ''; $('hasil').innerHTML = '';
+  $('petunjuk').textContent = 'Memproses...';
   const r = await api(p);
   tampilHasil(r);
-  if (navigator.vibrate) navigator.vibrate(r.ok ? 200 : [100, 80, 100]);
-  setTimeout(() => kunci = false, 2500);
+  $('petunjuk').textContent = 'Arahkan kamera ke QR pada bib';
+  setTimeout(() => { kunci = false; $('wrap').className = ''; }, 2200);
   muat();
 }
 $('kirimBib').onclick = () => { const b = $('bib').value.trim(); if (b) { kirim({ bib: b }); $('bib').value = ''; } };
+
 function tampilHasil(r) {
-  const h = $('hasil'); h.className = r.ok ? 'ok' : 'bad';
-  h.innerHTML = (r.ok ? '<div>✔ FINISH TERCATAT</div>' : '<div><b>' + esc(r.pesan) + '</b></div>') +
-    (r.bib ? '<div class="big">' + esc(r.bib) + '</div><div>' + esc(r.nama) + ' · ' + esc(r.kat) + '</div>' : '') +
-    (r.dur != null ? '<div class="big">' + fmt(r.dur) + '</div><div>Peringkat ' + r.rank + ' (' + esc(r.kat) + ')</div>' : '');
+  const jenis = r.ok ? 'ok' : (r.dur != null ? 'dup' : 'bad');
+  const h = $('hasil');
+  h.className = ''; void h.offsetWidth; h.className = jenis;
+  h.innerHTML = '<div class="stt">' + (jenis === 'ok' ? '✔ FINISH TERCATAT' : esc(r.pesan).toUpperCase()) + '</div>' +
+    (r.bib ? '<div class="bib">' + esc(r.bib) + '</div><div class="nm">' + esc(r.nama) + ' · ' + esc(r.kat) + '</div>' : '') +
+    (r.dur != null ? '<div class="wkt">' + fmt(r.dur) + '</div><div class="rk">Peringkat ' + r.rank + ' · ' + esc(r.kat) + '</div>' : '');
+  $('wrap').className = jenis;
+  const f = $('flash'); f.className = ''; void f.offsetWidth; f.className = jenis;
+  bunyi(jenis);
+  if (navigator.vibrate) navigator.vibrate(jenis === 'ok' ? 200 : [120, 80, 120]);
+  if (jenis === 'ok') ucap('Peringkat ' + r.rank);
+  else if (jenis === 'dup') ucap('Sudah finish');
+  else ucap('Gagal');
+  if (r.bib) $('nTerakhir').textContent = r.bib;
 }
 
 // ---------- Ranking + Admin ----------
 async function muat() {
   const r = await api({ aksi: 'ranking' });
-  if (r.ok) { data = r; renderRank(); renderAdm(); }
+  if (r.ok) { data = r; $('nTotal').textContent = data.hasil.length; renderRank(); renderAdm(); }
 }
 $('muat').onclick = muat;
-$('kat').onchange = renderRank;
 function renderRank() {
   if (!data) return;
-  const sel = $('kat'), now = sel.value;
-  sel.innerHTML = data.kategori.map(k => '<option>' + esc(k) + '</option>').join('');
-  if (now && data.kategori.indexOf(now) >= 0) sel.value = now;
-  const list = data.hasil.filter(x => x.kat === sel.value).sort((a, b) => a.dur - b.dur);
-  $('tabel').innerHTML = '<tr><th>#</th><th>Bib</th><th>Nama</th><th>Waktu</th>' + (peran === 'admin' ? '<th></th>' : '') + '</tr>' +
-    list.map((x, i) => '<tr><td>' + (i + 1) + '</td><td>' + esc(x.bib) + '</td><td>' + esc(x.nama) + '</td><td>' + fmt(x.dur) + '</td>' +
-      (peran === 'admin' ? '<td><button class="merah" style="padding:4px 8px;width:auto" data-h="' + esc(x.t) + '">×</button></td>' : '') + '</tr>').join('');
+  if (!katAktif || data.kategori.indexOf(katAktif) < 0) katAktif = data.kategori[0] || '';
+  $('chips').innerHTML = data.kategori.map(k =>
+    '<button class="chip' + (k === katAktif ? ' on' : '') + '" data-k="' + esc(k) + '">' + esc(k) + '</button>').join('');
+  $('chips').querySelectorAll('[data-k]').forEach(b => b.onclick = () => { katAktif = b.dataset.k; renderRank(); });
+  const list = data.hasil.filter(x => x.kat === katAktif).sort((a, b) => a.dur - b.dur);
+  $('tabel').innerHTML = list.length ? list.map((x, i) =>
+    '<div class="rowr' + (i < 3 ? ' t' + (i + 1) : '') + '"><div class="no">' + (['🥇', '🥈', '🥉'][i] || (i + 1)) + '</div>' +
+    '<div class="info"><b>' + esc(x.nama) + '</b><small>Bib ' + esc(x.bib) + '</small></div>' +
+    '<div class="wk">' + fmt(x.dur) + '</div>' +
+    (peran === 'admin' ? '<button class="btn merah kecil" data-h="' + esc(x.t) + '">×</button>' : '') + '</div>').join('')
+    : '<div class="kosong">Belum ada yang finish di kategori ini</div>';
   $('tabel').querySelectorAll('[data-h]').forEach(b => b.onclick = async () => {
     if (!confirm('Hapus catatan finish ini?')) return;
     const r = await api({ aksi: 'hapus', t: b.dataset.h });
-    if (r.ok) { data = r; renderRank(); }
+    if (r.ok) { data = r; $('nTotal').textContent = data.hasil.length; renderRank(); }
   });
 }
 function renderAdm() {
   if (peran !== 'admin' || !data) return;
   $('startList').innerHTML = data.kategori.map(k => {
-    const st = data.start[k];
-    return '<div class="kat"><b>' + esc(k) + '</b><div>' + (st ? 'Start: ' + new Date(st).toLocaleTimeString('id-ID') : 'Belum distart') + '</div>' +
-      '<div class="row"><button data-k="' + esc(k) + '">START ' + esc(k) + '</button><button class="abu" data-b="' + esc(k) + '">Batal</button></div></div>';
+    const st = data.start[k], n = data.hasil.filter(x => x.kat === k).length;
+    return '<div class="kat"><div class="atas"><b>' + esc(k) + '</b><span class="lencana ' + (st ? 'run' : 'stop') + '">' + (st ? '● BERJALAN' : 'BELUM START') + '</span></div>' +
+      '<div class="jam" data-st="' + (st || 0) + '">' + (st ? fmtDetik(Date.now() - st) : '0:00:00') + '</div>' +
+      '<small style="color:var(--redup)">' + (st ? 'Start ' + new Date(st).toLocaleTimeString('id-ID') + ' · ' : '') + n + ' finish</small>' +
+      '<div class="baris" style="margin-top:8px"><button class="btn" data-k="' + esc(k) + '">START</button><button class="btn abu" data-b="' + esc(k) + '">Batal</button></div></div>';
   }).join('');
   $('startList').querySelectorAll('[data-k]').forEach(b => b.onclick = () => start(b.dataset.k, false));
   $('startList').querySelectorAll('[data-b]').forEach(b => b.onclick = () => start(b.dataset.b, true));
 }
+setInterval(() => {
+  document.querySelectorAll('.jam[data-st]').forEach(e => { const s = +e.dataset.st; if (s) e.textContent = fmtDetik(Date.now() - s); });
+}, 1000);
 async function start(kat, batal) {
   if (!confirm((batal ? 'Batalkan start ' : 'MULAI waktu lomba ') + kat + '?')) return;
   const r = await api({ aksi: 'start', kat: kat, batal: batal });
-  if (r.ok) { data = r; renderAdm(); renderRank(); } else alert(r.pesan);
+  if (r.ok) { data = r; renderAdm(); renderRank(); bunyi('ok'); } else alert(r.pesan);
 }
 $('semua').onclick = () => start('SEMUA', false);
+
+async function reset(apa, label) {
+  if (prompt('Ketik RESET untuk: ' + label) !== 'RESET') return;
+  const r = await api({ aksi: 'reset', apa: apa });
+  if (r.ok) { data = r; $('nTotal').textContent = data.hasil.length; renderAdm(); renderRank(); alert('Selesai: ' + label); } else alert(r.pesan);
+}
+$('rFinish').onclick = () => reset('finish', 'menghapus semua catatan finish');
+$('rStart').onclick = () => reset('start', 'menghapus waktu start semua kategori');
+$('rSemua').onclick = () => reset('semua', 'menghapus catatan finish DAN waktu start');
 
 // ---------- Mulai ----------
 setInterval(() => { if (sesi) muat(); }, 15000);
