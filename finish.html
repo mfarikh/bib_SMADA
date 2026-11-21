@@ -53,21 +53,25 @@
 
   /* scan */
   .stat{display:flex;gap:8px;margin-bottom:10px}
-  .stat div{flex:1;background:var(--card);border:1px solid var(--garis);border-radius:14px;padding:10px;text-align:center}
-  .stat b{display:block;font-size:24px;color:var(--oranye2)}
+  .stat div{flex:1;background:var(--card);border:1px solid var(--garis);border-radius:14px;padding:6px 8px;text-align:center}
+  .stat b{display:block;font-size:20px;color:var(--oranye2)}
   .stat small{color:var(--redup);font-size:12px}
   #wrap{position:relative;border-radius:20px;overflow:hidden;border:3px solid var(--garis);background:#000;transition:border-color .2s,box-shadow .2s}
   #wrap.ok{border-color:var(--hijau);box-shadow:0 0 30px rgba(31,179,90,.55)}
   #wrap.bad{border-color:var(--merah);box-shadow:0 0 30px rgba(229,72,77,.5)}
   #wrap.dup{border-color:var(--kuning);box-shadow:0 0 30px rgba(245,184,46,.5)}
-  #reader{width:100%;min-height:200px}
+  #reader{width:100%;min-height:160px}
   #petunjuk{position:absolute;left:0;right:0;bottom:10px;text-align:center;font-size:13px;color:#fff;text-shadow:0 1px 4px #000;pointer-events:none}
-  #hasil{display:none;margin:12px 0;border-radius:20px;padding:18px;text-align:center;animation:pop .35s ease}
-  #hasil.ok{display:block;background:linear-gradient(160deg,#1fb35a,#13803f)}
-  #hasil.bad{display:block;background:linear-gradient(160deg,#e5484d,#a52428)}
-  #hasil.dup{display:block;background:linear-gradient(160deg,#f5b82e,#c98a0a);color:#2a1d00}
-  #hasil .stt{font-weight:800;letter-spacing:.08em;font-size:14px;opacity:.95}
-  #hasil .bib{font-size:46px;font-weight:900;line-height:1.1;margin:4px 0}
+  #modal{position:fixed;inset:0;z-index:60;display:none;align-items:center;justify-content:center;padding:20px;background:rgba(5,10,20,.8)}
+  #modal.on{display:flex}
+  #hasil{width:100%;max-width:420px;border-radius:26px;padding:26px 18px;text-align:center;animation:pop .3s ease;box-shadow:0 20px 60px rgba(0,0,0,.6)}
+  #hasil.ok{background:linear-gradient(160deg,#1fb35a,#13803f)}
+  #hasil.bad{background:linear-gradient(160deg,#e5484d,#a52428)}
+  #hasil.dup{background:linear-gradient(160deg,#f5b82e,#c98a0a);color:#2a1d00}
+  #hasil .ikn{font-size:64px;line-height:1}
+  #hasil .stt{font-weight:800;letter-spacing:.06em;font-size:19px;margin-top:6px}
+  #hasil .tutup{margin-top:14px;font-size:12px;opacity:.75}
+  #hasil .bib{font-size:54px;font-weight:900;line-height:1.1;margin:4px 0}
   #hasil .nm{font-size:19px;font-weight:700}
   #hasil .wkt{font-size:40px;font-weight:900;margin-top:8px;font-variant-numeric:tabular-nums}
   #hasil .rk{display:inline-block;margin-top:6px;background:rgba(0,0,0,.22);border-radius:999px;padding:6px 16px;font-weight:800}
@@ -108,6 +112,7 @@
 </head>
 <body>
 <div id="flash"></div>
+<div id="modal"><div id="hasil"></div></div>
 <div class="box">
 
   <div id="login">
@@ -142,7 +147,6 @@
         <div><b id="nTerakhir">-</b><small>Bib terakhir</small></div>
       </div>
       <div id="wrap"><div id="reader"></div><div id="petunjuk">Arahkan kamera ke QR pada bib</div></div>
-      <div id="hasil"></div>
       <details>
         <summary>QR rusak? Input nomor bib manual</summary>
         <input id="bib" placeholder="Nomor bib, contoh G0501006" autocapitalize="characters">
@@ -178,6 +182,7 @@
 <script>
 const API = 'https://script.google.com/macros/s/AKfycbwRs0zD_myzbkAny8nOjuGWENTsc9-lMrfoxH8ksHkRsl_4YZjqZ9LZYAEdi6l7zEJ6/exec';   // URL Web app Apps Script (berakhiran /exec)
 const $ = id => document.getElementById(id);
+let lastToken = '', lastWaktu = 0;
 let sesi = null, peran = '', data = null, scanner = null, kunci = false, katAktif = '';
 
 function ls(k, v) {
@@ -287,14 +292,17 @@ async function mulaiScan() {
   if (!scanner) scanner = new Html5Qrcode('reader');
   if (scanner.isScanning) return;
   try {
-    await scanner.start({ facingMode: 'environment' }, { fps: 10, qrbox: 240 }, onScan, () => {});
+    await scanner.start({ facingMode: 'environment' }, { fps: 10, qrbox: 220, aspectRatio: 1.3333 }, onScan, () => {});
   } catch (e) { tampilHasil({ ok: false, pesan: 'Kamera tidak bisa dibuka. Izinkan akses kamera di browser.' }); }
 }
 async function stopScan() { if (scanner && scanner.isScanning) { try { await scanner.stop(); } catch (e) {} } }
 function onScan(teks) {
   if (kunci) return;
   const m = teks.match(/[?&]t=([A-Za-z0-9]{20})/);
-  if (m) kirim({ t: m[1] });
+  if (!m) return;
+  if (m[1] === lastToken && Date.now() - lastWaktu < 5000) return;   // abaikan QR yang sama saat masih di depan kamera
+  lastToken = m[1]; lastWaktu = Date.now();
+  kirim({ t: m[1] });
 }
 async function kirim(p) {
   kunci = true; p.aksi = 'finish';
@@ -302,18 +310,21 @@ async function kirim(p) {
   const r = await api(p);
   tampilHasil(r);
   $('petunjuk').textContent = 'Arahkan kamera ke QR pada bib';
-  setTimeout(() => { kunci = false; $('wrap').className = ''; }, 2200);
   muat();
 }
 $('kirimBib').onclick = () => { const b = $('bib').value.trim(); if (b) { kirim({ bib: b }); $('bib').value = ''; } };
+
+let popupTimer = null;
+function tutupModal() { clearTimeout(popupTimer); $('modal').className = ''; $('wrap').className = ''; kunci = false; }
+$('modal').onclick = tutupModal;
 
 function tampilHasil(r) {
   const jenis = r.ok ? 'ok' : (r.dur != null ? 'dup' : 'bad');
   const h = $('hasil');
   h.className = ''; void h.offsetWidth; h.className = jenis;
-  h.innerHTML = '<div class="stt">' + (jenis === 'ok' ? '✔ FINISH TERCATAT' : esc(r.pesan).toUpperCase()) + '</div>' +
+  h.innerHTML = '<div class="ikn">' + ({ ok: '✔', dup: '⚠', bad: '✖' }[jenis]) + '</div><div class="stt">' + (jenis === 'ok' ? 'FINISH TERCATAT' : esc(r.pesan).toUpperCase()) + '</div>' +
     (r.bib ? '<div class="bib">' + esc(r.bib) + '</div><div class="nm">' + esc(r.nama) + ' · ' + esc(r.kat) + '</div>' : '') +
-    (r.dur != null ? '<div class="wkt">' + fmt(r.dur) + '</div><div class="rk">Peringkat ' + r.rank + ' · ' + esc(r.kat) + '</div>' : '');
+    (r.dur != null ? '<div class="wkt">' + fmt(r.dur) + '</div><div class="rk">Peringkat ' + r.rank + ' · ' + esc(r.kat) + '</div>' : '') + '<div class="tutup">Ketuk untuk menutup</div>';
   $('wrap').className = jenis;
   const f = $('flash'); f.className = ''; void f.offsetWidth; f.className = jenis;
   bunyi(jenis);
@@ -322,6 +333,9 @@ function tampilHasil(r) {
   else if (jenis === 'dup') ucap('Sudah finish');
   else ucap('Gagal');
   if (r.bib) $('nTerakhir').textContent = r.bib;
+  $('modal').className = 'on';
+  clearTimeout(popupTimer);
+  popupTimer = setTimeout(tutupModal, jenis === 'ok' ? 2500 : 3500);
 }
 
 // ---------- Ranking + Admin ----------
