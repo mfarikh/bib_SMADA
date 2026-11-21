@@ -1,0 +1,209 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Finish - SMADALMJ Runfest</title>
+<style>
+  *{box-sizing:border-box}
+  body{margin:0;background:#0b1220;color:#fff;font-family:Arial,sans-serif}
+  .box{max-width:460px;margin:0 auto;padding:14px}
+  h2{color:#ff8230;margin:8px 0}
+  input,select,button{font-size:17px;padding:12px;border-radius:8px;border:0;width:100%;margin:5px 0}
+  input,select{background:#fff;color:#000}
+  button{background:#ff8230;color:#fff;font-weight:bold}
+  button.abu{background:#334}
+  button.merah{background:#c0392b}
+  header{display:flex;justify-content:space-between;align-items:center}
+  header button{width:auto;padding:8px 12px}
+  nav{display:flex;gap:6px}
+  nav button{background:#334}
+  nav button.on{background:#ff8230}
+  #reader{width:100%;background:#000;border-radius:10px;overflow:hidden;min-height:120px}
+  #hasil{border-radius:10px;padding:14px;margin:10px 0;text-align:center;display:none}
+  #hasil.ok{background:#1e8e3e;display:block}
+  #hasil.bad{background:#c0392b;display:block}
+  .big{font-size:34px;font-weight:bold}
+  table{width:100%;border-collapse:collapse;margin-top:8px}
+  td,th{padding:8px 4px;border-bottom:1px solid #223;text-align:left;font-size:15px}
+  .err{color:#ff7b7b}
+  .kat{background:#16213a;border-radius:10px;padding:10px;margin:8px 0}
+  .row{display:flex;gap:6px}
+</style>
+</head>
+<body>
+<div class="box">
+
+  <div id="login">
+    <h2>Login Panitia</h2>
+    <input id="u" placeholder="Username" autocomplete="username" autocapitalize="off">
+    <input id="p" type="password" placeholder="Password" autocomplete="current-password">
+    <button id="masuk">Masuk</button>
+    <div id="err" class="err"></div>
+  </div>
+
+  <div id="app" style="display:none">
+    <header><b id="who"></b><button id="keluar" class="abu">Keluar</button></header>
+    <nav>
+      <button data-t="scan">Scan</button>
+      <button data-t="rank">Ranking</button>
+      <button data-t="adm" id="tabAdm">Admin</button>
+    </nav>
+
+    <section id="scan">
+      <div id="reader"></div>
+      <div id="hasil"></div>
+      <input id="bib" placeholder="Manual: nomor bib (jika QR rusak)">
+      <button id="kirimBib" class="abu">Catat Manual</button>
+    </section>
+
+    <section id="rank" style="display:none">
+      <select id="kat"></select>
+      <button id="muat" class="abu">Refresh</button>
+      <table id="tabel"></table>
+    </section>
+
+    <section id="adm" style="display:none">
+      <h2>Mulai Lomba</h2>
+      <div id="startList"></div>
+      <button id="semua" class="merah">START SEMUA KATEGORI</button>
+    </section>
+  </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/html5-qrcode@2.3.8/html5-qrcode.min.js"></script>
+<script>
+const API = 'https://script.google.com/macros/s/AKfycbwVM2l6ONGzIWDa71tUOyckPqKV2VGdjHu6QprwKlBLt8iGdvy3PwWgGkOoNGaazNsx/exec';   // URL Web app Apps Script (berakhiran /exec)
+const $ = id => document.getElementById(id);
+let sesi = null, peran = '', data = null, scanner = null, kunci = false;
+
+function ls(k, v) {
+  try {
+    if (v === undefined) return localStorage.getItem(k);
+    if (v === null) localStorage.removeItem(k); else localStorage.setItem(k, v);
+  } catch (e) { return null; }
+}
+function esc(s) { return String(s == null ? '' : s).replace(/[&<>"]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c])); }
+function fmt(ms) {
+  ms = Math.max(0, ms);
+  const s = Math.floor(ms / 1000), h = Math.floor(s / 3600), m = Math.floor(s % 3600 / 60), d = s % 60;
+  return h + ':' + String(m).padStart(2, '0') + ':' + String(d).padStart(2, '0') + '.' + String(Math.floor(ms % 1000 / 10)).padStart(2, '0');
+}
+
+async function api(p) {
+  p.sesi = sesi;
+  try {
+    const r = await fetch(API, { method: 'POST', headers: { 'Content-Type': 'text/plain;charset=utf-8' }, body: JSON.stringify(p) });
+    const j = await r.json();
+    if (j.habis) keluar();
+    return j;
+  } catch (e) { return { ok: false, pesan: 'Gagal terhubung ke server' }; }
+}
+
+// ---------- Login ----------
+$('masuk').onclick = async () => {
+  $('err').textContent = '';
+  const r = await api({ aksi: 'login', u: $('u').value, p: $('p').value });
+  if (!r.ok) { $('err').textContent = r.pesan; return; }
+  sesi = r.token; peran = r.peran;
+  ls('sesi', sesi); ls('nama', r.nama); ls('peran', peran);
+  buka(r.nama);
+};
+function buka(nama) {
+  $('login').style.display = 'none'; $('app').style.display = 'block';
+  $('who').textContent = nama + ' (' + peran + ')';
+  $('tabAdm').style.display = peran === 'admin' ? '' : 'none';
+  tab('scan'); muat();
+}
+async function keluar() {
+  ls('sesi', null); sesi = null;
+  await stopScan();
+  $('app').style.display = 'none'; $('login').style.display = 'block';
+}
+$('keluar').onclick = keluar;
+
+// ---------- Tab ----------
+function tab(t) {
+  ['scan', 'rank', 'adm'].forEach(x => $(x).style.display = x === t ? 'block' : 'none');
+  document.querySelectorAll('nav button').forEach(b => b.className = b.dataset.t === t ? 'on' : '');
+  if (t === 'scan') mulaiScan(); else stopScan();
+}
+document.querySelectorAll('nav button').forEach(b => b.onclick = () => tab(b.dataset.t));
+
+// ---------- Scan ----------
+async function mulaiScan() {
+  if (!scanner) scanner = new Html5Qrcode('reader');
+  if (scanner.isScanning) return;
+  try {
+    await scanner.start({ facingMode: 'environment' }, { fps: 10, qrbox: 240 }, onScan, () => {});
+  } catch (e) { tampilHasil({ ok: false, pesan: 'Kamera tidak bisa dibuka. Izinkan akses kamera di browser.' }); }
+}
+async function stopScan() { if (scanner && scanner.isScanning) { try { await scanner.stop(); } catch (e) {} } }
+function onScan(teks) {
+  if (kunci) return;
+  const m = teks.match(/[?&]t=([A-Za-z0-9]{20})/);
+  if (m) kirim({ t: m[1] });
+}
+async function kirim(p) {
+  kunci = true; p.aksi = 'finish';
+  $('hasil').className = ''; $('hasil').innerHTML = '';
+  const r = await api(p);
+  tampilHasil(r);
+  if (navigator.vibrate) navigator.vibrate(r.ok ? 200 : [100, 80, 100]);
+  setTimeout(() => kunci = false, 2500);
+  muat();
+}
+$('kirimBib').onclick = () => { const b = $('bib').value.trim(); if (b) { kirim({ bib: b }); $('bib').value = ''; } };
+function tampilHasil(r) {
+  const h = $('hasil'); h.className = r.ok ? 'ok' : 'bad';
+  h.innerHTML = (r.ok ? '<div>✔ FINISH TERCATAT</div>' : '<div><b>' + esc(r.pesan) + '</b></div>') +
+    (r.bib ? '<div class="big">' + esc(r.bib) + '</div><div>' + esc(r.nama) + ' · ' + esc(r.kat) + '</div>' : '') +
+    (r.dur != null ? '<div class="big">' + fmt(r.dur) + '</div><div>Peringkat ' + r.rank + ' (' + esc(r.kat) + ')</div>' : '');
+}
+
+// ---------- Ranking + Admin ----------
+async function muat() {
+  const r = await api({ aksi: 'ranking' });
+  if (r.ok) { data = r; renderRank(); renderAdm(); }
+}
+$('muat').onclick = muat;
+$('kat').onchange = renderRank;
+function renderRank() {
+  if (!data) return;
+  const sel = $('kat'), now = sel.value;
+  sel.innerHTML = data.kategori.map(k => '<option>' + esc(k) + '</option>').join('');
+  if (now && data.kategori.indexOf(now) >= 0) sel.value = now;
+  const list = data.hasil.filter(x => x.kat === sel.value).sort((a, b) => a.dur - b.dur);
+  $('tabel').innerHTML = '<tr><th>#</th><th>Bib</th><th>Nama</th><th>Waktu</th>' + (peran === 'admin' ? '<th></th>' : '') + '</tr>' +
+    list.map((x, i) => '<tr><td>' + (i + 1) + '</td><td>' + esc(x.bib) + '</td><td>' + esc(x.nama) + '</td><td>' + fmt(x.dur) + '</td>' +
+      (peran === 'admin' ? '<td><button class="merah" style="padding:4px 8px;width:auto" data-h="' + esc(x.t) + '">×</button></td>' : '') + '</tr>').join('');
+  $('tabel').querySelectorAll('[data-h]').forEach(b => b.onclick = async () => {
+    if (!confirm('Hapus catatan finish ini?')) return;
+    const r = await api({ aksi: 'hapus', t: b.dataset.h });
+    if (r.ok) { data = r; renderRank(); }
+  });
+}
+function renderAdm() {
+  if (peran !== 'admin' || !data) return;
+  $('startList').innerHTML = data.kategori.map(k => {
+    const st = data.start[k];
+    return '<div class="kat"><b>' + esc(k) + '</b><div>' + (st ? 'Start: ' + new Date(st).toLocaleTimeString('id-ID') : 'Belum distart') + '</div>' +
+      '<div class="row"><button data-k="' + esc(k) + '">START ' + esc(k) + '</button><button class="abu" data-b="' + esc(k) + '">Batal</button></div></div>';
+  }).join('');
+  $('startList').querySelectorAll('[data-k]').forEach(b => b.onclick = () => start(b.dataset.k, false));
+  $('startList').querySelectorAll('[data-b]').forEach(b => b.onclick = () => start(b.dataset.b, true));
+}
+async function start(kat, batal) {
+  if (!confirm((batal ? 'Batalkan start ' : 'MULAI waktu lomba ') + kat + '?')) return;
+  const r = await api({ aksi: 'start', kat: kat, batal: batal });
+  if (r.ok) { data = r; renderAdm(); renderRank(); } else alert(r.pesan);
+}
+$('semua').onclick = () => start('SEMUA', false);
+
+// ---------- Mulai ----------
+setInterval(() => { if (sesi) muat(); }, 15000);
+const s0 = ls('sesi');
+if (s0) { sesi = s0; peran = ls('peran') || 'panitia'; buka(ls('nama') || ''); }
+</script>
+</body>
+</html>
