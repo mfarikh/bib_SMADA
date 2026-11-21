@@ -14,6 +14,7 @@
   #idle h1{font-size:6vw;color:#ff8230}
   #idle p{font-size:2.8vw;margin-top:2vh;opacity:.8}
   #error h1{font-size:5vw;color:#ff5d5d}
+  #error p{font-size:1.6vw;margin-top:2vh;opacity:.6;word-break:break-all;padding:0 4vw}
   #hasil{background:#000}
   #latar{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;
     filter:blur(30px) brightness(.5);transform:scale(1.1)}
@@ -21,7 +22,7 @@
 </style>
 </head>
 <body>
-<input id="scan" type="text" autocomplete="off" autofocus>
+<input id="scan" type="text" autocomplete="off" autocapitalize="off" autocorrect="off" spellcheck="false" autofocus>
 
 <div id="idle" class="layar">
   <h1>SMADALMJ RUNFEST</h1>
@@ -30,67 +31,90 @@
 <div id="hasil" class="layar">
   <img id="latar" alt=""><img id="gambar" alt="Bib">
 </div>
-<div id="error" class="layar"><h1>Bib tidak ditemukan</h1></div>
+<div id="error" class="layar">
+  <h1>Bib tidak ditemukan</h1>
+  <p id="infoError"></p>
+</div>
 
 <script>
-var TAMPIL_MS = 15000;   // lama bib tampil di TV (ms)
+var TAMPIL_MS = 15000;     // lama bib tampil di TV (ms)
+var PANJANG_TOKEN = 20;    // harus sama dengan TOKEN_PANJANG di generate_bib.py
+var BUFFER_BASI_MS = 1500; // ketikan setengah-jadi dibuang setelah jeda ini
+
 var scan = document.getElementById('scan');
-var timer = null, debounce = null;
+var timerKembali = null, timerBasi = null;
+var nomorCari = 0;         // penanda pencarian terbaru (abaikan hasil yang usang)
 
 function tampil(id){
   ['idle','hasil','error'].forEach(function(x){
     document.getElementById(x).style.display = (x === id) ? 'flex' : 'none';
   });
 }
-function focusScan(){ scan.value = ''; scan.focus(); }
-function kembaliIdle(){ tampil('idle'); focusScan(); }
-function resetTimer(ms){ clearTimeout(timer); timer = setTimeout(kembaliIdle, ms); }
+function bersihkan(){ scan.value = ''; }
+function fokus(){ scan.focus(); }
+function kembaliIdle(){ tampil('idle'); bersihkan(); fokus(); }
+function jadwalKembali(ms){ clearTimeout(timerKembali); timerKembali = setTimeout(kembaliIdle, ms); }
 
-// Ambil token dari isi QR (URL lengkap ...?t=TOKEN) atau token polos
+// Cari token lengkap (tepat 20 karakter) di dalam teks hasil scan
 function ambilToken(teks){
-  var m = teks.match(/[?&]t=([A-Za-z0-9]+)/);
+  var re1 = new RegExp('[?&]t=([A-Za-z0-9]{' + PANJANG_TOKEN + '})');
+  var m = teks.match(re1);
   if (m) return m[1];
-  var polos = teks.trim();
-  return /^[A-Za-z0-9]{10,}$/.test(polos) ? polos : '';
+  var re2 = new RegExp('(?:^|[^A-Za-z0-9])([A-Za-z0-9]{' + PANJANG_TOKEN + '})\\s*$');
+  m = teks.match(re2);
+  return m ? m[1] : '';
 }
 
 function cari(token, otomatisKembali){
+  var saya = ++nomorCari;
   var url = 'b/' + token + '.png';
   var pra = new Image();
   pra.onload = function(){
+    if (saya !== nomorCari) return;
     document.getElementById('gambar').src = url;
     document.getElementById('latar').src = url;
     tampil('hasil');
-    if (otomatisKembali) resetTimer(TAMPIL_MS);
+    if (otomatisKembali) jadwalKembali(TAMPIL_MS);
   };
   pra.onerror = function(){
+    if (saya !== nomorCari) return;
+    document.getElementById('infoError').textContent = 'Kode: ' + token;
     tampil('error');
-    if (otomatisKembali) resetTimer(4000);
+    if (otomatisKembali) jadwalKembali(4000);
   };
   pra.src = url;
 }
 
-function proses(){
+// Dipanggil setiap ada ketikan baru dari scanner
+function periksa(){
+  clearTimeout(timerBasi);
   var token = ambilToken(scan.value);
-  scan.value = '';
-  if (token){ clearTimeout(timer); cari(token, true); }
+  if (token){
+    bersihkan();
+    clearTimeout(timerKembali);
+    cari(token, true);
+    return;
+  }
+  // belum lengkap: tunggu karakter berikutnya; buang jika berhenti lama
+  timerBasi = setTimeout(bersihkan, BUFFER_BASI_MS);
 }
 
-// Scanner biasanya diakhiri Enter; kalau tidak, pakai jeda 400 ms
+scan.addEventListener('input', periksa);
 scan.addEventListener('keydown', function(e){
-  if (e.key === 'Enter'){ e.preventDefault(); clearTimeout(debounce); proses(); }
+  if (e.key === 'Enter'){ e.preventDefault(); periksa(); }
 });
-scan.addEventListener('input', function(){
-  clearTimeout(debounce);
-  debounce = setTimeout(proses, 400);
-});
-scan.addEventListener('blur', function(){ setTimeout(function(){ scan.focus(); }, 50); });
-document.addEventListener('click', function(){ scan.focus(); });
+scan.addEventListener('blur', function(){ setTimeout(fokus, 50); });
+document.addEventListener('click', fokus);
+document.addEventListener('visibilitychange', fokus);
+window.addEventListener('focus', fokus);
 
 // Dibuka dari scan HP (?t=TOKEN) atau mode TV (tanpa token)
 var tokenUrl = new URLSearchParams(location.search).get('t');
-if (tokenUrl && /^[A-Za-z0-9]{10,}$/.test(tokenUrl)){
+if (tokenUrl && new RegExp('^[A-Za-z0-9]{' + PANJANG_TOKEN + '}$').test(tokenUrl)){
   cari(tokenUrl, false);
+} else if (tokenUrl){
+  document.getElementById('infoError').textContent = 'Kode: ' + tokenUrl;
+  tampil('error');
 } else {
   kembaliIdle();
 }
