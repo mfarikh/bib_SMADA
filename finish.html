@@ -164,6 +164,8 @@
       <h3>MULAI LOMBA</h3>
       <div id="startList"></div>
       <button class="btn merah" id="semua">START SEMUA KATEGORI</button>
+      <h3>REKAPITULASI</h3>
+      <button class="btn" id="unduh">⬇ Download Rekap (Excel)</button>
       <h3>RESET (FASE UJI COBA)</h3>
       <button class="btn abu" id="rFinish">Reset catatan finish</button>
       <button class="btn abu" id="rStart">Reset waktu start</button>
@@ -179,8 +181,9 @@
 </nav>
 
 <script src="https://cdn.jsdelivr.net/npm/html5-qrcode@2.3.8/html5-qrcode.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
 <script>
-const API = 'https://script.google.com/macros/s/AKfycbwRs0zD_myzbkAny8nOjuGWENTsc9-lMrfoxH8ksHkRsl_4YZjqZ9LZYAEdi6l7zEJ6/exec';   // URL Web app Apps Script (berakhiran /exec)
+const API = 'https://script.google.com/macros/s/AKfycbwmbDDR1kpIl__kva8Brbi6R6wXaOJ_JzEQnPT0nrSk59bx5IV-MzjjMr6st0lKrIZC/exec';   // URL Web app Apps Script (berakhiran /exec)
 const $ = id => document.getElementById(id);
 let lastToken = '', lastWaktu = 0;
 let sesi = null, peran = '', data = null, scanner = null, kunci = false, katAktif = '';
@@ -393,6 +396,40 @@ async function reset(apa, label) {
 $('rFinish').onclick = () => reset('finish', 'menghapus semua catatan finish');
 $('rStart').onclick = () => reset('start', 'menghapus waktu start semua kategori');
 $('rSemua').onclick = () => reset('semua', 'menghapus catatan finish DAN waktu start');
+
+// ---------- Download rekap (Excel) ----------
+async function unduhRekap() {
+  if (typeof XLSX === 'undefined') { alert('Library Excel belum termuat. Cek internet lalu coba lagi.'); return; }
+  const r = await api({ aksi: 'rekap' });
+  if (!r.ok) { alert(r.pesan); return; }
+  const wb = XLSX.utils.book_new();
+  const lebar = [{ wch: 10 }, { wch: 12 }, { wch: 32 }, { wch: 10 }, { wch: 14 }, { wch: 20 }, { wch: 14 }, { wch: 14 }];
+  const info = [];
+  r.kategori.forEach(k => {
+    const fin = r.hasil.filter(x => x.kat === k).sort((a, b) => a.dur - b.dur);
+    const sudah = {}; fin.forEach(x => sudah[x.bib] = 1);
+    const baris = fin.map((x, i) => ({
+      'Peringkat': i + 1, 'Bib': x.bib, 'Nama': x.nama, 'Kategori': k,
+      'Waktu Tempuh': fmt(x.dur), 'Jam Finish': x.ms ? new Date(x.ms).toLocaleString('id-ID') : '',
+      'Petugas': x.petugas, 'Status': 'Finish'
+    }));
+    const belum = r.peserta.filter(x => x.kat === k && !sudah[x.bib]);
+    belum.forEach(x => baris.push({ 'Peringkat': '', 'Bib': x.bib, 'Nama': x.nama, 'Kategori': k,
+      'Waktu Tempuh': '', 'Jam Finish': '', 'Petugas': '', 'Status': 'Belum finish' }));
+    const ws = XLSX.utils.json_to_sheet(baris.length ? baris : [{ 'Info': 'Belum ada data' }]);
+    ws['!cols'] = lebar;
+    XLSX.utils.book_append_sheet(wb, ws, k.replace(/[\\\/?*\[\]:]/g, '_').substring(0, 31) || 'Kategori');
+    const st = r.start[k];
+    info.push({ 'Kategori': k, 'Waktu Start': st ? new Date(st).toLocaleString('id-ID') : 'Belum distart',
+      'Jumlah Peserta': r.peserta.filter(x => x.kat === k).length, 'Sudah Finish': fin.length, 'Belum Finish': belum.length });
+  });
+  const wi = XLSX.utils.json_to_sheet(info.length ? info : [{ 'Info': 'Belum ada data' }]);
+  wi['!cols'] = [{ wch: 12 }, { wch: 24 }, { wch: 16 }, { wch: 14 }, { wch: 14 }];
+  XLSX.utils.book_append_sheet(wb, wi, 'Ringkasan', true);
+  const d = new Date(), z = n => String(n).padStart(2, '0');
+  XLSX.writeFile(wb, 'Rekap_Finish_SMADALMJ_' + d.getFullYear() + z(d.getMonth() + 1) + z(d.getDate()) + '_' + z(d.getHours()) + z(d.getMinutes()) + '.xlsx');
+}
+$('unduh').onclick = unduhRekap;
 
 // ---------- Mulai ----------
 setInterval(() => { if (sesi) muat(); }, 15000);
